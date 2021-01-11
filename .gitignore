@@ -1,0 +1,15 @@
+Library/*
+Temp/*
+obj/*
+Logs/*
+.vs/*
+Assets/Environments/ContemporaryGallery_pan.hdr
+Assets/Environments/ContemporaryGallery_pan.hdr.meta
+Assets/Environments/Environment_Mat.mat
+Assets/Environments/Environment_Mat.mat.meta
+Assets/Environments/HDR_041_Path.hdr
+Assets/Environments/HDR_041_Path.hdr.meta
+Assets/Environments/Stonewall_Ref.hdr
+Assets/Environments/Stonewall_Ref.hdr.meta
+Assets/Environments/studio-3.hdr
+Assets/Environments/studio-3.hdr.meta

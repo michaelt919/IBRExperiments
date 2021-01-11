@@ -1,0 +1,10 @@
+Imagemagick commands:
+magick convert weights00.png weights01.png weights02.png weights03.png -combine weights00-03.png
+magick convert weights04.png weights05.png weights06.png weights07.png -combine weights04-07.png
+
+Texture types:
+Diffuse: Default (sRGB, "Alpha Is Transparency")
+Normal: Normal map
+Roughness: Single Channel; Channel=Red
+Specular: Default (sRGB, "Alpha Is Transparency")
+Weights: Default (NOT sRGB, NOT "Alpha Is Transparency")
