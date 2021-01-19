@@ -25,8 +25,9 @@ Shader "Custom/BasisIBR"
         _OcclusionStrength("Strength", Range(0.0, 1.0)) = 1.0
         _OcclusionMap("Occlusion", 2D) = "white" {}
 
-        _BasisWeights0123("Weights 0-3", 2D) = "" {}
-        _BasisWeights4567("Weights 4-7", 2D) = "" {}
+        _BasisWeights0123("Weights 0-3", 2D) = "black" {}
+        _BasisWeights4567("Weights 4-7", 2D) = "black" {}
+        _BasisWeights89AB("Weights 8-11", 2D) = "black" {}
         _BasisFunctions("Basis Functions", 2DArray) = "" {}
 
         // Blending state
@@ -205,13 +206,14 @@ Shader "Custom/BasisIBR"
             // For IBR
             sampler2D _BasisWeights0123;
             sampler2D _BasisWeights4567;
+            sampler2D _BasisWeights89AB;
             TEXTURE2D_ARRAY(_BasisFunctions);
             SAMPLER(linear_clamp_sampler_BasisFunctions);
 
             #define PI 3.1415926535897932384626433832795 // For convenience
-            #define BASIS_COUNT 8
+            #define BASIS_COUNT 12
 
-            float3 getMFDistEstimate(float weights[8], float nDotH)
+            float3 getMFDistEstimate(float weights[BASIS_COUNT], float nDotH)
             {
                 float3 estimate = float3(0, 0, 0);
                 float w = sqrt(max(0.0, acos(nDotH) * 3.0 / PI));
@@ -227,7 +229,7 @@ Shader "Custom/BasisIBR"
             // Based on com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl
             // Computes the scalar specular term for Minimalist CookTorrance BRDF
             // NOTE: needs to be multiplied with reflectance f0, i.e. specular color to complete
-            half3 DirectBRDFSpecularIBR(BRDFData brdfData, float weights[8], half3 normalWS, half3 lightDirectionWS, half3 viewDirectionWS)
+            half3 DirectBRDFSpecularIBR(BRDFData brdfData, float weights[BASIS_COUNT], half3 normalWS, half3 lightDirectionWS, half3 viewDirectionWS)
             {
                 float3 halfDir = SafeNormalize(float3(lightDirectionWS) +float3(viewDirectionWS));
                 float NoH = saturate(dot(normalWS, halfDir));
@@ -257,7 +259,7 @@ Shader "Custom/BasisIBR"
             }
 
             // Based on com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl
-            half3 LightingPhysicallyBasedIBR(BRDFData brdfData, float weights[8],
+            half3 LightingPhysicallyBasedIBR(BRDFData brdfData, float weights[BASIS_COUNT],
                 half3 lightColor, half3 lightDirectionWS, half lightAttenuation,
                 half3 normalWS, half3 viewDirectionWS)
             {
@@ -273,7 +275,7 @@ Shader "Custom/BasisIBR"
             }
 
             // Based on com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl
-            half3 LightingPhysicallyBasedIBR(BRDFData brdfData, float weights[8], Light light, half3 normalWS, half3 viewDirectionWS)
+            half3 LightingPhysicallyBasedIBR(BRDFData brdfData, float weights[BASIS_COUNT], Light light, half3 normalWS, half3 viewDirectionWS)
             {
                 return LightingPhysicallyBasedIBR(brdfData, weights, light.color, light.direction, light.distanceAttenuation * light.shadowAttenuation, normalWS, viewDirectionWS);
             }
@@ -333,6 +335,7 @@ Shader "Custom/BasisIBR"
                 // Extract weights for IBR
                 float4 weights0123 = tex2D(_BasisWeights0123, input.uv);
                 float4 weights4567 = tex2D(_BasisWeights4567, input.uv);
+                float4 weights89AB = tex2D(_BasisWeights89AB, input.uv);
                 float weights[BASIS_COUNT];
 
                 int b;
@@ -343,6 +346,10 @@ Shader "Custom/BasisIBR"
                 for (b = 4; b < 8; b++)
                 {
                     weights[b] = weights4567[b - 4];
+                }
+                for (b = 8; b < 12; b++)
+                {
+                    weights[b] = weights89AB[b - 8];
                 }
 
                 // For debugging:

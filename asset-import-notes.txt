@@ -1,6 +1,7 @@
 Imagemagick commands:
 magick convert weights00.png weights01.png weights02.png weights03.png -combine weights00-03.png
 magick convert weights04.png weights05.png weights06.png weights07.png -combine weights04-07.png
+magick convert weights08.png weights09.png weights10.png weights11.png -combine weights08-11.png
 
 Texture types:
 Diffuse: Default (sRGB, "Alpha Is Transparency")

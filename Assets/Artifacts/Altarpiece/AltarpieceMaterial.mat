@@ -48,6 +48,10 @@ Material:
         m_Texture: {fileID: 2800000, guid: 83c108dd25d3d0c49b4004b977a4bc5c, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _BasisWeights89AB:
+        m_Texture: {fileID: 2800000, guid: a6afe1a7e9373604fb3d3d3d19cb2f70, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _BumpMap:
         m_Texture: {fileID: 2800000, guid: a499c0c0222d93e41a9aeb1876032fcb, type: 3}
         m_Scale: {x: 1, y: 1}
