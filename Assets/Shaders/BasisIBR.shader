@@ -10,6 +10,8 @@ Shader "Custom/BasisIBR"
         [MainColor] _BaseColor("Color", Color) = (1, 1, 1)
         [MainTexture] _BaseMap("Albedo", 2D) = "white" {}
 
+        _ReflectanceScale("Reflectance scale", Range(0.0, 10.0)) = 1
+
         _Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
 
         _Smoothness("Smoothness", Range(0.0, 1.0)) = 0.5
@@ -201,6 +203,8 @@ Shader "Custom/BasisIBR"
                 return output;
             }
 
+            float _ReflectanceScale;
+
             sampler2D _RoughnessMap;
 
             // For IBR
@@ -245,7 +249,7 @@ Shader "Custom/BasisIBR"
                 // We further optimize a few light invariant terms
                 // brdfData.normalizationTerm = (roughness + 0.5) * 4.0 rewritten as roughness * 4.0 + 2.0 to a fit a MAD.
                 half LoH2 = LoH * LoH;
-                half3 specularTerm = getMFDistEstimate(weights, NoH)[0] / (max(0.1h, LoH2) * brdfData.normalizationTerm);
+                half3 specularTerm = getMFDistEstimate(weights, NoH) / (max(0.1h, LoH2) * brdfData.normalizationTerm);
 
                 // On platforms where half actually means something, the denominator has a risk of overflow
                 // clamp below was added specifically to "fix" that, but dx compiler (we convert bytecode to metal/gles)
@@ -287,6 +291,9 @@ Shader "Custom/BasisIBR"
                 // You can write your own function to initialize the surface data of your shader.
                 SurfaceData surfaceData;
                 InitializeStandardLitSurfaceData(input.uv, surfaceData);
+
+                surfaceData.albedo *= _ReflectanceScale;
+                surfaceData.specular *= _ReflectanceScale;
 
                 // Override smoothness using our roughness map.
                 surfaceData.smoothness = 1.0 - tex2D(_RoughnessMap, input.uv).r;
@@ -341,15 +348,15 @@ Shader "Custom/BasisIBR"
                 int b;
                 for (b = 0; b < 4; b++)
                 {
-                    weights[b] = weights0123[b];
+                    weights[b] = weights0123[b] * _ReflectanceScale;
                 }
                 for (b = 4; b < 8; b++)
                 {
-                    weights[b] = weights4567[b - 4];
+                    weights[b] = weights4567[b - 4] * _ReflectanceScale;
                 }
                 for (b = 8; b < 12; b++)
                 {
-                    weights[b] = weights89AB[b - 8];
+                    weights[b] = weights89AB[b - 8] * _ReflectanceScale;
                 }
 
                 // For debugging:
@@ -359,7 +366,7 @@ Shader "Custom/BasisIBR"
                 //return half4(saturate(0.5 * half3(diff, -diff, -diff)), 1);
 
                 // For debugging:
-                //return float4(1-(weights[0] + weights[1] + weights[2] + weights[3] + weights[4] + weights[5] + weights[6] + weights[7]), 0,0, 1);
+                //return float4(abs(1 - (weights[0] + weights[1] + weights[2] + weights[3] + weights[4] + weights[5] + weights[6] + weights[7] + weights[8] + weights[9] + weights[10] + weights[11])), 0,0, 1);
 
                 // LightingPhysicallyBased computes direct light contribution.
                 color += LightingPhysicallyBasedIBR(brdfData, weights, mainLight, normalWS, viewDirectionWS);
