@@ -259,7 +259,8 @@ Shader "Custom/BasisIBR"
                 //float NoV = saturate(dot(normalWS, viewDirectionWS));
 
                 //half3 fresnelRatio = lerp(brdfData.specular, half3(1.0, 1.0, 1.0), pow(1 - LoH, 5.0)) / brdfData.specular;
-                //half3 geomRatio = 0.5 / max(0.001, lerp(2.0 * NoV * NoL, NoV + NoL, brdfData.roughness2));
+                ////half3 geomRatio = 0.5 / max(0.1, lerp(2.0 * NoV * NoL, NoV + NoL, brdfData.roughness2));
+                //half3 geomRatio = 0.5 / max(0.1, NoV * sqrt(lerp(NoL * NoL, 1, brdfData.roughness2)) + NoL * sqrt(lerp(NoV * NoV, 1, brdfData.roughness2)));
                 //half3 specularTerm = getMFDistEstimate(weights, NoH) * fresnelRatio * geomRatio;
 
                 // On platforms where half actually means something, the denominator has a risk of overflow
@@ -301,6 +302,8 @@ Shader "Custom/BasisIBR"
                 // InitializeStandarLitSurfaceData initializes based on the rules for standard shader.
                 // You can write your own function to initialize the surface data of your shader.
                 SurfaceData surfaceData;
+
+                // https://github.com/Unity-Technologies/Graphics/blob/master/Packages/com.unity.render-pipelines.universal/Shaders/LitInput.hlsl'
                 InitializeStandardLitSurfaceData(input.uv, surfaceData);
 
                 surfaceData.albedo *= _ReflectanceScale;
@@ -329,6 +332,9 @@ Shader "Custom/BasisIBR"
                 // It's easy to plugin your own shading fuction. You just need replace LightingPhysicallyBased function
                 // below with your own.
                 BRDFData brdfData;
+
+                // https://github.com/Unity-Technologies/Graphics/blob/master/Packages/com.unity.shadergraph/Editor/Generation/Targets/BuiltIn/ShaderLibrary/Lighting.hlsl
+                // https://github.com/Unity-Technologies/Graphics/blob/master/Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonMaterial.hlsl
                 InitializeBRDFData(surfaceData.albedo, surfaceData.metallic, surfaceData.specular, surfaceData.smoothness, surfaceData.alpha, brdfData);
 
                 // Light struct is provide by LWRP to abstract light shader variables.
