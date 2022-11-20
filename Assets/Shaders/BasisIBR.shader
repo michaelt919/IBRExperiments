@@ -214,11 +214,15 @@ Shader "Custom/BasisIBR"
             TEXTURE2D_ARRAY(_BasisFunctions);
             SAMPLER(linear_clamp_sampler_BasisFunctions);
 
-            #define PI 3.1415926535897932384626433832795 // For convenience
             #define BASIS_COUNT 12
 
             float3 getMFDistEstimate(float weights[BASIS_COUNT], float nDotH)
             {
+                //// for debugging
+                //float m = 0.5;
+                //float Ddenom = lerp(1, m*m, nDotH * nDotH);
+                //return float3(1.0, 0.6, 0.133) * m * m / (Ddenom * Ddenom);
+
                 float3 estimate = float3(0, 0, 0);
                 float w = sqrt(max(0.0, acos(nDotH) * 3.0 / PI));
 
@@ -232,10 +236,9 @@ Shader "Custom/BasisIBR"
 
             // Based on com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl
             // Computes the scalar specular term for Minimalist CookTorrance BRDF
-            // NOTE: needs to be multiplied with reflectance f0, i.e. specular color to complete
             half3 DirectBRDFSpecularIBR(BRDFData brdfData, float weights[BASIS_COUNT], half3 normalWS, half3 lightDirectionWS, half3 viewDirectionWS)
             {
-                float3 halfDir = SafeNormalize(float3(lightDirectionWS) +float3(viewDirectionWS));
+                float3 halfDir = SafeNormalize(float3(lightDirectionWS) + float3(viewDirectionWS));
                 float NoH = saturate(dot(normalWS, halfDir));
                 half LoH = saturate(dot(lightDirectionWS, halfDir));
 
@@ -250,6 +253,14 @@ Shader "Custom/BasisIBR"
                 // brdfData.normalizationTerm = (roughness + 0.5) * 4.0 rewritten as roughness * 4.0 + 2.0 to a fit a MAD.
                 half LoH2 = LoH * LoH;
                 half3 specularTerm = getMFDistEstimate(weights, NoH) / (max(0.1h, LoH2) * brdfData.normalizationTerm);
+
+                //// More accurate PBR equations
+                //float NoL = saturate(dot(normalWS, lightDirectionWS));
+                //float NoV = saturate(dot(normalWS, viewDirectionWS));
+
+                //half3 fresnelRatio = lerp(brdfData.specular, half3(1.0, 1.0, 1.0), pow(1 - LoH, 5.0)) / brdfData.specular;
+                //half3 geomRatio = 0.5 / max(0.001, lerp(2.0 * NoV * NoL, NoV + NoL, brdfData.roughness2));
+                //half3 specularTerm = getMFDistEstimate(weights, NoH) * fresnelRatio * geomRatio;
 
                 // On platforms where half actually means something, the denominator has a risk of overflow
                 // clamp below was added specifically to "fix" that, but dx compiler (we convert bytecode to metal/gles)
@@ -340,6 +351,9 @@ Shader "Custom/BasisIBR"
                 half3 color = GlobalIllumination(brdfData, bakedGI, surfaceData.occlusion, normalWS, viewDirectionWS);
 
                 // Extract weights for IBR
+                // Number of weights MUST be a multiple of four or this won't work right.
+                // If one or more weight textures are not used, that's OK, but if there are unused channels in a texture,
+                // since basisFunctions clamps at the texture boundary, it will double, triple, or quadruple count basis functions at the boundary.
                 float4 weights0123 = tex2D(_BasisWeights0123, input.uv);
                 float4 weights4567 = tex2D(_BasisWeights4567, input.uv);
                 float4 weights89AB = tex2D(_BasisWeights89AB, input.uv);
@@ -394,6 +408,14 @@ Shader "Custom/BasisIBR"
                     //color += LightingPhysicallyBased(brdfData, light, normalWS, viewDirectionWS);
                 }
 #endif
+
+                // For debugging
+                //color = -LightingPhysicallyBasedIBR(brdfData, weights, mainLight, normalWS, viewDirectionWS) + PI * float4(4.29, 2.57, 0.57, 0.0);
+                //color = SAMPLE_TEXTURE2D_ARRAY(_BasisFunctions, linear_clamp_sampler_BasisFunctions, float2(0, 0), 0);
+                //color = LightingPhysicallyBasedIBR(brdfData, weights, mainLight, normalWS, viewDirectionWS);
+                //color = LightingPhysicallyBasedIBR(brdfData, weights, mainLight.color, mainLight.direction, mainLight.distanceAttenuation * mainLight.shadowAttenuation, normalWS, viewDirectionWS);
+                //color = DirectBRDFSpecularIBR(brdfData, weights, normalWS, mainLight.direction, viewDirectionWS);
+                //color = getMFDistEstimate(weights, 1.0);
 
                 float fogFactor = input.positionWSAndFogFactor.w;
 
